@@ -1,5 +1,6 @@
 from lib.classes.tts_engines.common.headers import *
 from lib.classes.tts_engines.common.preset_loader import load_engine_presets
+from lib.conf_models import default_engine_settings
 
 
 class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
@@ -17,6 +18,7 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
             self.models = load_engine_presets(self.session['tts_engine'])
             self.params = {}
             self.params['samplerate'] = self.models[self.session['fine_tuned']]['samplerate']
+            self.languages = default_engine_settings[TTS_ENGINES['QWEN3']]['languages']
             enough_vram = self.session['free_vram_gb'] > 4.0
             seed = 0
             self.amp_dtype = self._apply_gpu_policy(enough_vram=enough_vram, seed=seed)
@@ -80,7 +82,7 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
                 sentence_parts = self._split_sentence_on_sml(sentence)
                 self.audio_segments = []
 
-                lang_code = self.models[self.session['fine_tuned']]['languages'].get(self.session['language'], 'English')
+                lang_code = self.languages.get(self.session['language'], 'English')
 
                 for part in sentence_parts:
                     part = part.strip()
@@ -121,7 +123,8 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
 
                 if self.audio_segments:
                     combined_audio = torch.cat(self.audio_segments, dim=0)
-                    torchaudio.save(final_sentence_file, combined_audio.unsqueeze(0), self.params['samplerate'])
+                    import soundfile as sf
+                    sf.write(final_sentence_file, combined_audio.cpu().numpy(), self.params['samplerate'])
                     msg = f'Audio saved: {final_sentence_file}'
                     print(msg)
                     return True
