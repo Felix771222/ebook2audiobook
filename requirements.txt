@@ -33,6 +33,7 @@ torch<=2.7.1
 torchaudio<=2.7.1
 transformers==4.57.6
 coqui-tts[languages]==0.27.5
+qwen-tts
 ext/py/num2words
 
 ext/py/demucs

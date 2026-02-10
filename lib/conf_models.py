@@ -11,7 +11,8 @@ TTS_ENGINES = {
     "VITS": "vits",
     "FAIRSEQ": "fairseq",
     "TACOTRON2": "tacotron",
-    "YOURTTS": "yourtts"
+    "YOURTTS": "yourtts",
+    "QWEN3": "qwen3"
 }
 
 TTS_VOICE_CONVERSION = {
@@ -183,5 +184,51 @@ default_engine_settings = {
         "files": ['config.json', 'model_file.pth'],
         "voices": {"Machinella-5": "female-en-5", "ElectroMale-2": "male-en-2", 'Machinella-4': 'female-pt-4\n', 'ElectroMale-3': 'male-pt-3\n'},
         "rating": {"VRAM": 1, "CPU": 5, "RAM": 1, "Realism": 2}
+    },
+    TTS_ENGINES['QWEN3']: {
+        "repo": "Qwen/Qwen3-TTS",
+        "languages": {"zho": "Chinese", "eng": "English", "jpn": "Japanese", "kor": "Korean", "deu": "German", "fra": "French", "rus": "Russian", "por": "Portuguese", "spa": "Spanish", "ita": "Italian"},
+        "samplerate": 24000,
+        "models": {
+            "Qwen3-TTS-12Hz-1.7B-CustomVoice": {
+                "model_name": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+                "type": "custom_voice",
+                "default_speaker": "Vivian",
+                "speakers": {
+                    "Vivian": "Bright, slightly edgy young female voice (Chinese)",
+                    "Serena": "Warm, gentle young female voice (Chinese)",
+                    "Uncle_Fu": "Seasoned male voice with low, mellow timbre (Chinese)",
+                    "Dylan": "Youthful Beijing male voice (Chinese Beijing Dialect)",
+                    "Eric": "Lively Chengdu male voice (Chinese Sichuan Dialect)",
+                    "Ryan": "Dynamic male voice (English)",
+                    "Aiden": "Sunny American male voice (English)",
+                    "Ono_Anna": "Playful Japanese female voice (Japanese)",
+                    "Sohee": "Warm Korean female voice (Korean)"
+                }
+            },
+            "Qwen3-TTS-12Hz-1.7B-VoiceDesign": {
+                "model_name": "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+                "type": "voice_design"
+            },
+            "Qwen3-TTS-12Hz-1.7B-Base": {
+                "model_name": "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+                "type": "voice_clone"
+            },
+            "Qwen3-TTS-12Hz-0.6B-CustomVoice": {
+                "model_name": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+                "type": "custom_voice",
+                "default_speaker": "Vivian",
+                "speakers": {
+                    "Vivian": "Bright, slightly edgy young female voice",
+                    "Serena": "Warm, gentle young female voice"
+                }
+            },
+            "Qwen3-TTS-12Hz-0.6B-Base": {
+                "model_name": "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+                "type": "voice_clone"
+            }
+        },
+        "voices": {},
+        "rating": {"VRAM": 4, "CPU": 2, "RAM": 4, "Realism": 5}
     }
 }
