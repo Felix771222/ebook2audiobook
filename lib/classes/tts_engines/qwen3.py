@@ -40,11 +40,9 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
             engine = loaded_tts.get(self.tts_key)
             if not engine:
                 try:
-                    hf_repo = self.models[self.session['fine_tuned']]['repo']
                     model_name = self.models[self.session['fine_tuned']]['model_name']
 
                     dtype = torch.bfloat16 if self.session['device'] in ['cuda', 'GPU'] else torch.float32
-                    attn_impl = "flash_attention_2" if self.session['device'] in ['cuda', 'GPU'] else None
 
                     device_map = "cuda:0" if self.session['device'] in ['cuda', 'GPU'] else "cpu"
 
@@ -52,7 +50,6 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
                         model_name,
                         device_map=device_map,
                         dtype=dtype,
-                        attn_implementation=attn_impl,
                     )
                     loaded_tts[self.tts_key] = engine
                 except Exception as e:
@@ -69,16 +66,15 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
             error = f'load_engine() error: {e}'
             raise RuntimeError(error)
 
-    def convert(self, sentence_index: int, sentence: str) -> bool:
+    def convert(self, sentence_number: int, sentence: str) -> bool:
         try:
+            import numpy as np
             import torch
             import torchaudio
-            import numpy as np
-            import soundfile as sf
-            from lib.classes.tts_engines.common.audio import trim_audio, is_audio_data_valid
+            from lib.classes.tts_engines.common.audio import trim_audio
 
             if self.engine:
-                final_sentence_file = os.path.join(self.session['sentences_dir'], f'{sentence_index}.{default_audio_proc_format}')
+                final_sentence_file = os.path.join(self.session['sentences_dir'], f'{sentence_number}.{default_audio_proc_format}')
                 device = devices['CUDA']['proc'] if self.session['device'] in [devices['CUDA']['proc'], devices['JETSON']['proc']] else self.session['device']
 
                 sentence_parts = self._split_sentence_on_sml(sentence)
@@ -92,8 +88,8 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
                         continue
 
                     if self._is_sml_tag(part):
-                        converted = self._convert_sml(part, device)
-                        if converted:
+                        converted = self._convert_sml(part)
+                        if converted is not None:
                             self.audio_segments.append(trim_audio(converted, 30))
                         continue
 
@@ -107,7 +103,7 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
                             wavs, sr = self._generate_custom_voice(part, lang_code)
 
                         if wavs is not None and len(wavs) > 0:
-                            audio_data = wavs[0] if isinstance(wavs, (list, tuple)) else wavs
+                            audio_data = wavs[0]
                             if isinstance(audio_data, np.ndarray):
                                 audio_data = torch.from_numpy(audio_data)
                             elif not isinstance(audio_data, torch.Tensor):
@@ -150,8 +146,8 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
 
         wavs, sr = self.engine.generate_custom_voice(
             text=text,
-            language=language,
             speaker=speaker,
+            language=language,
             instruct=instruct if instruct else None,
         )
         return wavs, sr
@@ -166,33 +162,31 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
         voice_clone_prompt = None
         if hasattr(self, '_voice_clone_prompt') and self._voice_clone_prompt is not None:
             voice_clone_prompt = self._voice_clone_prompt
-        else:
-            voice_clone_prompt = self.engine.create_voice_clone_prompt(
-                ref_audio=ref_audio,
-                ref_text=ref_text if ref_text else None,
-                x_vector_only_mode=ref_text == '',
-            )
-            self._voice_clone_prompt = voice_clone_prompt
 
         wavs, sr = self.engine.generate_voice_clone(
             text=text,
             language=language,
+            ref_audio=ref_audio,
+            ref_text=ref_text if ref_text else None,
             voice_clone_prompt=voice_clone_prompt,
         )
         return wavs, sr
 
     def _get_default_speaker(self) -> str:
-        return self.models[self.session['fine_tuned']].get('default_speaker', 'Vivian')
+        model_config = self.models[self.session['fine_tuned']]
+        if 'speakers' in model_config and model_config['speakers']:
+            return list(model_config['speakers'].keys())[0]
+        return 'Vivian'
 
     def _is_sml_tag(self, text: str) -> bool:
         return text.strip().startswith('[') and text.strip().endswith(']')
 
-    def _convert_sml(self, tag: str, device: str) -> torch.Tensor | None:
+    def _convert_sml(self, sml: str) -> torch.Tensor | None:
         from lib.classes.tts_engines.common.audio import trim_audio
         import re
 
-        tag = tag.strip()[1:-1]
-        match = re.match(r'(\w+)(?::(.+))?', tag)
+        sml = sml.strip()[1:-1]
+        match = re.match(r'(\w+)(?::(.+))?', sml)
         if not match:
             return None
 
@@ -226,7 +220,8 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
         self.params['current_voice'] = voice
 
     def get_supported_speakers(self) -> list:
-        return list(self.models[self.session['fine_tuned']].get('speakers', {}).keys())
+        model_config = self.models[self.session['fine_tuned']]
+        return list(model_config.get('speakers', {}).keys())
 
     def get_supported_languages(self) -> dict:
         return self.models[self.session['fine_tuned']].get('languages', {})
