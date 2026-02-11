@@ -1,6 +1,7 @@
 from lib.classes.tts_engines.common.headers import *
 from lib.classes.tts_engines.common.preset_loader import load_engine_presets
 from lib.conf_models import default_engine_settings
+import torch
 
 
 class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
@@ -233,3 +234,10 @@ class Qwen3TTS(TTSUtils, TTSRegistry, name='qwen3'):
         if self.session['device'] in ['cuda', 'GPU', 'JETSON']:
             import torch
             torch.cuda.empty_cache()
+
+    def create_vtt(self, all_sentences: list) -> bool:
+        audio_dir = self.session['sentences_dir']
+        vtt_path = os.path.join(self.session['process_dir'], Path(self.session['final_name']).stem + '.vtt')
+        if self._build_vtt_file(all_sentences, audio_dir, vtt_path):
+            return True
+        return False
