@@ -2553,11 +2553,13 @@ def convert_ebook(args:dict)->tuple:
                 session['output_split_hours'] = args['output_split_hours']if args['output_split_hours'] is not None else default_output_split_hours
                 session['model_cache'] = f"{session['tts_engine']}-{session['fine_tuned']}"
                 cleanup_models_cache()
+                # Always set system and directories regardless of GUI or headless mode
+                session['system'] = sys.platform
+                session['session_dir'] = os.path.join(tmp_dir, f"proc-{session['id']}")
+                session['voice_dir'] = os.path.join(voices_dir, '__sessions', f"voice-{session['id']}", session['language'])
+                os.makedirs(session['voice_dir'], exist_ok=True)
+                
                 if not session['is_gui_process']:
-                    session['system'] = sys.platform
-                    session['session_dir'] = os.path.join(tmp_dir, f"proc-{session['id']}")
-                    session['voice_dir'] = os.path.join(voices_dir, '__sessions', f"voice-{session['id']}", session['language'])
-                    os.makedirs(session['voice_dir'], exist_ok=True)
                     if session['custom_model'] is not None:
                         if not os.path.exists(session['custom_model_dir']):
                             os.makedirs(session['custom_model_dir'], exist_ok=True)
